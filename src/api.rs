@@ -43,7 +43,7 @@ struct Resource(CollectionType);
 struct Id(isize);
 struct Relation(CollectionType);
 struct Query(QueryType, isize);
-struct Build;
+struct Build(&str);
 struct Fetch;
 
 /// Implement RequestState and the get_param() function
@@ -86,11 +86,6 @@ impl RequestState for Query {
 }
 
 impl RequestState for Build {
-    fn get_param(&self) -> String {
-        String::new()
-    }
-}
-impl RequestState for Fetch {
     fn get_param(&self) -> String {
         String::new()
     }
@@ -197,12 +192,26 @@ impl Request<Relation> {
     /// Consumes "self" (the request object in the <Relation> state)
     /// and returns a new object of Request<Build>.
     pub fn build(self) -> Request<Build> {
-        let mut path = String::new();
+        let mut url = String::new();
         let my_iter = self
             .custody
             .iter()
             .enumerate()
-            .map(|i, val| path.push_str(val.get_param().as_str()));
-        path
+            .map(|i, val| url.push_str(val.get_param().as_str()));
+        self.transition(Build(url.as_str()))
+    }
+}
+
+impl Request<Build> {
+    /// The transition function for the Request<Build> state.
+    ///
+    /// Uses the request URL built in the prior state to call the
+    /// JSON Placeholder API using reqwest in a blocking manner
+    /// (as this is just for demonstration purposes - no need for async yet).
+    ///
+    /// Consumes "self" (the request object in the <Build> state)
+    /// and returns nothing.
+    pub fn fetch(self, relation: CollectionType) {
+        self.next.0
     }
 }
