@@ -31,7 +31,9 @@ enum QueryType {
 }
 
 /// Generic trait typestate.
-trait RequestState {}
+trait RequestState {
+    fn get_param(&self) -> String;
+}
 
 /// State Structs
 
@@ -43,6 +45,56 @@ struct Relation(CollectionType);
 struct Query(QueryType, isize);
 struct Build;
 struct Fetch;
+
+/// Implement RequestState and the get_param() function
+/// for each state struct.
+
+impl RequestState for Initialized {
+    fn get_param(&self) -> String {
+        String::new()
+    }
+}
+
+impl RequestState for Method {
+    fn get_param(&self) -> String {
+        self.0.to_string()
+    }
+}
+
+impl RequestState for Resource {
+    fn get_param(&self) -> String {
+        self.0.to_string()
+    }
+}
+
+impl RequestState for Id {
+    fn get_param(&self) -> String {
+        self.0.to_string()
+    }
+}
+
+impl RequestState for Relation {
+    fn get_param(&self) -> String {
+        self.0.to_string()
+    }
+}
+
+impl RequestState for Query {
+    fn get_param(&self) -> String {
+        format!("?{}={}", self.0, self.1)
+    }
+}
+
+impl RequestState for Build {
+    fn get_param(&self) -> String {
+        String::new()
+    }
+}
+impl RequestState for Fetch {
+    fn get_param(&self) -> String {
+        String::new()
+    }
+}
 
 /// Generic impl block, using "S" to represent the current RequestState.
 impl<S: RequestState> Request<S> {
@@ -133,5 +185,24 @@ impl Request<Id> {
     /// and returns a new object of Request<Relation>.
     pub fn relation(self, relation: CollectionType) -> Request<Relation> {
         self.transition(Relation(relation))
+    }
+}
+
+impl Request<Relation> {
+    /// The transition function for the Request<Relation> state.
+    ///
+    /// This function takes no parameters. Instead, it takes the values
+    /// from prior states and builds the corresponding request URL.
+    ///
+    /// Consumes "self" (the request object in the <Relation> state)
+    /// and returns a new object of Request<Build>.
+    pub fn build(self) -> Request<Build> {
+        let mut path = String::new();
+        let my_iter = self
+            .custody
+            .iter()
+            .enumerate()
+            .map(|i, val| path.push_str(val.get_param().as_str()));
+        path
     }
 }
