@@ -1,15 +1,17 @@
-use std::{error::Request, isize, rc::Rc};
+use core::fmt;
+use std::{isize, rc::Rc};
 
 /// The basic object built using this API. It represents a custom request
 /// to the JSON Placeholder API.
 pub struct Request<S: RequestState> {
+    method: MethodType,
     custody: Vec<Rc<dyn RequestState>>,
     state: Rc<S>,
 }
 
 /// Enums for the various request options - standard request methods, resource endpoints, etc.
 
-enum MethodType {
+pub enum MethodType {
     Get,
     Post,
     Put,
@@ -17,7 +19,19 @@ enum MethodType {
     Delete,
 }
 
-enum CollectionType {
+impl fmt::Display for MethodType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            MethodType::Get => write!(f, "GET"),
+            MethodType::Post => write!(f, "POST"),
+            MethodType::Put => write!(f, "PUT"),
+            MethodType::Patch => write!(f, "PATCH"),
+            MethodType::Delete => write!(f, "DELETE"),
+        }
+    }
+}
+
+pub enum CollectionType {
     Posts,
     Comments,
     Albums,
@@ -26,25 +40,45 @@ enum CollectionType {
     Users,
 }
 
-enum QueryType {
+impl fmt::Display for CollectionType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            CollectionType::Posts => write!(f, "/posts"),
+            CollectionType::Comments => write!(f, "/comments"),
+            CollectionType::Albums => write!(f, "/albums"),
+            CollectionType::Photos => write!(f, "/photos"),
+            CollectionType::Todos => write!(f, "/todos"),
+            CollectionType::Users => write!(f, "/users"),
+        }
+    }
+}
+
+pub enum QueryType {
     PostId,
 }
 
+impl fmt::Display for QueryType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            QueryType::PostId => write!(f, "postId"),
+        }
+    }
+}
+
 /// Generic trait typestate.
-trait RequestState {
+pub trait RequestState {
     fn get_param(&self) -> String;
 }
 
 /// State Structs
 
-struct Initialized;
-struct Method(MethodType);
-struct Resource(CollectionType);
-struct Id(isize);
-struct Relation(CollectionType);
-struct Query(QueryType, isize);
-struct Build(&str);
-struct Fetch;
+pub struct Initialized;
+pub struct Method(MethodType);
+pub struct Resource(CollectionType);
+pub struct Id(isize);
+pub struct Relation(CollectionType);
+pub struct Query(QueryType, isize);
+pub struct Build(String);
 
 /// Implement RequestState and the get_param() function
 /// for each state struct.
@@ -69,7 +103,7 @@ impl RequestState for Resource {
 
 impl RequestState for Id {
     fn get_param(&self) -> String {
-        self.0.to_string()
+        format!("/{}", self.0)
     }
 }
 
@@ -99,41 +133,37 @@ impl<S: RequestState> Request<S> {
         custody.push(next.clone());
 
         Request {
+            method: self.method,
             custody,
             state: next,
         }
     }
 }
 
+impl Default for Request<Initialized> {
+    fn default() -> Self {
+        Request::new(MethodType::Get)
+    }
+}
+
 /// The first state for the Request object, which includes the "new" creation function
 /// and the "method" function for transitioning into the next state.
 impl Request<Initialized> {
-    pub fn new() -> Request<Initialized> {
+    pub fn new(method: MethodType) -> Request<Initialized> {
         Request {
+            method,
             custody: vec![Rc::new(Initialized)],
             state: Rc::new(Initialized),
         }
     }
 
-    /// The transition function for the Request<Initialized> state.
-    /// Requires the method to be set using the enum variants defined in the
-    /// MethodType enum.
-    ///
-    /// Consumes "self" (the Request object in the <Initialized> state)
-    /// and returns a new object of Request<Method>.
-    pub fn method(self, method: MethodType) -> Request<Method> {
-        self.transition(Method(method))
-    }
-}
-
-impl Request<Method> {
     /// The transition function for the Request<Method> state.
     /// Requires the resource to be set using the enum variants
     /// defined in the CollectionType enum.
     ///
     /// Consumes "self" (the request object in the <Method> state)
     /// and returns a new object of Request<Resource>.
-    pub fn resource(self, resource: CollectionType) {
+    pub fn resource(self, resource: CollectionType) -> Request<Resource> {
         self.transition(Resource(resource))
     }
 }
@@ -192,17 +222,22 @@ impl Request<Relation> {
     /// Consumes "self" (the request object in the <Relation> state)
     /// and returns a new object of Request<Build>.
     pub fn build(self) -> Request<Build> {
-        let mut url = String::new();
-        let my_iter = self
-            .custody
+        let mut path = String::new();
+        self.custody
             .iter()
-            .enumerate()
-            .map(|i, val| url.push_str(val.get_param().as_str()));
-        self.transition(Build(url.as_str()))
+            .for_each(|val| path.push_str(val.get_param().as_str()));
+        self.transition(Build(format!(
+            "https://jsonplaceholder.typicode.com{}",
+            path
+        )))
     }
 }
 
 impl Request<Build> {
+    pub fn url(&self) -> String {
+        self.state.0.clone()
+    }
+
     /// The transition function for the Request<Build> state.
     ///
     /// Uses the request URL built in the prior state to call the
@@ -211,7 +246,7 @@ impl Request<Build> {
     ///
     /// Consumes "self" (the request object in the <Build> state)
     /// and returns nothing.
-    pub fn fetch(self, relation: CollectionType) {
-        self.next.0
+    pub fn fetch(self) -> String {
+        self.url()
     }
 }
