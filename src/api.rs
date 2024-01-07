@@ -1,6 +1,7 @@
-use std::{error::Request, rc::Rc};
+use std::{error::Request, isize, rc::Rc};
 
-/// The basic object to be built - a custom request to the JSON Placeholder API
+/// The basic object built using this API. It represents a custom request
+/// to the JSON Placeholder API.
 pub struct Request<S: RequestState> {
     custody: Vec<Rc<dyn RequestState>>,
     state: Rc<S>,
@@ -29,14 +30,15 @@ enum QueryType {
     PostId,
 }
 
-/// Generic RequestState trait typestate
+/// Generic trait typestate.
 trait RequestState {}
 
 /// State Structs
+
 struct Initialized;
 struct Method(MethodType);
 struct Resource(CollectionType);
-struct Id;
+struct Id(isize);
 struct Relation;
 struct Query;
 struct Build;
@@ -83,8 +85,24 @@ impl Request<Method> {
     /// defined in the CollectionType enum.
     ///
     /// Consumes "self" (the request object in the <Method> state)
-    /// and returns a new object of Request<Resource>
+    /// and returns a new object of Request<Resource>.
     pub fn resource(self, resource: CollectionType) {
         self.transition(Resource(resource))
+    }
+}
+
+impl Request<Resource> {
+    /// One of two (the other being "query") transition functions for the
+    /// Request<Resource> state. Due to the JSON Placeholder API constraints,
+    /// (at least according to their guide online), a request can either contain
+    /// an id or a query. Accordingly, the typestate branches here between
+    /// those options.
+    ///
+    /// Requires the id to be set using an isize integer value.
+    ///
+    /// Consumes "self" (the request object in the <Resource> state)
+    /// and returns a new object of Request<Id>.
+    pub fn id(self, id: isize) -> Request<Id> {
+        self.transition(Id(id))
     }
 }
