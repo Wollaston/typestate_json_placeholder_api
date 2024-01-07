@@ -9,5 +9,5 @@ fn main() {
         .relation(api::CollectionType::Comments)
         .build()
         .fetch();
-    println!("{:?}", my_path);
+    println!("{:#?}", my_path.unwrap());
 }

@@ -1,3 +1,4 @@
+use anyhow::Result;
 use core::fmt;
 use std::{isize, rc::Rc};
 
@@ -245,8 +246,9 @@ impl Request<Build> {
     /// (as this is just for demonstration purposes - no need for async yet).
     ///
     /// Consumes "self" (the request object in the <Build> state)
-    /// and returns nothing.
-    pub fn fetch(self) -> String {
-        self.url()
+    /// and returns the response as a Result<String>.
+    pub fn fetch(self) -> Result<String> {
+        let res = reqwest::blocking::get(self.url())?.text()?;
+        Ok(res)
     }
 }
