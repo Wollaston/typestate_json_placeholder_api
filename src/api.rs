@@ -40,7 +40,7 @@ struct Method(MethodType);
 struct Resource(CollectionType);
 struct Id(isize);
 struct Relation;
-struct Query;
+struct Query(QueryType, isize);
 struct Build;
 struct Fetch;
 
@@ -104,5 +104,21 @@ impl Request<Resource> {
     /// and returns a new object of Request<Id>.
     pub fn id(self, id: isize) -> Request<Id> {
         self.transition(Id(id))
+    }
+
+    /// One of two (the other being "id") transition functions for the
+    /// Request<Resource> state. Due to the JSON Placeholder API constraints,
+    /// (at least according to their guide online), a request can either contain
+    /// an id or a query. Accordingly, the typestate branches here between
+    /// those options.
+    ///
+    /// Requires the query to be set with:
+    ///     - a varient from the QueryType enum
+    ///     - an id of isize
+    ///
+    /// Consumes "self" (the request object in the <Resource> state)
+    /// and returns a new object of Request<Query>.
+    pub fn query(self, query: QueryType, id: isize) -> Request<Id> {
+        self.transition(Query(query, id))
     }
 }
