@@ -35,7 +35,7 @@ trait RequestState {}
 /// State Structs
 struct Initialized;
 struct Method(MethodType);
-struct Resource;
+struct Resource(CollectionType);
 struct Id;
 struct Relation;
 struct Query;
@@ -74,5 +74,17 @@ impl Request<Initialized> {
     /// and returns a new object of Request<Method>.
     pub fn method(self, method: MethodType) -> Request<Method> {
         self.transition(Method(method))
+    }
+}
+
+impl Request<Method> {
+    /// The transition function for the Request<Method> state.
+    /// Requires the resource to be called to be set using the enum variants
+    /// defined in the CollectionType enum.
+    ///
+    /// Consumes "self" (the request object in the <Method> state)
+    /// and returns a new object of Request<Resource>
+    pub fn resource(self, resource: CollectionType) {
+        self.transition(Resource(resource))
     }
 }
