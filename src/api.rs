@@ -39,7 +39,7 @@ struct Initialized;
 struct Method(MethodType);
 struct Resource(CollectionType);
 struct Id(isize);
-struct Relation;
+struct Relation(CollectionType);
 struct Query(QueryType, isize);
 struct Build;
 struct Fetch;
@@ -81,7 +81,7 @@ impl Request<Initialized> {
 
 impl Request<Method> {
     /// The transition function for the Request<Method> state.
-    /// Requires the resource to be called to be set using the enum variants
+    /// Requires the resource to be set using the enum variants
     /// defined in the CollectionType enum.
     ///
     /// Consumes "self" (the request object in the <Method> state)
@@ -118,7 +118,20 @@ impl Request<Resource> {
     ///
     /// Consumes "self" (the request object in the <Resource> state)
     /// and returns a new object of Request<Query>.
-    pub fn query(self, query: QueryType, id: isize) -> Request<Id> {
+    pub fn query(self, query: QueryType, id: isize) -> Request<Query> {
         self.transition(Query(query, id))
+    }
+}
+
+impl Request<Id> {
+    /// The transition function for the Request<Id> state.
+    ///
+    /// Requires the resource to be set using the enum variants
+    /// defined in the CollectionType enum.
+    ///
+    /// Consumes "self" (the request object in the <Id> state)
+    /// and returns a new object of Request<Relation>.
+    pub fn relation(self, relation: CollectionType) -> Request<Relation> {
+        self.transition(Relation(relation))
     }
 }
