@@ -34,7 +34,7 @@ trait RequestState {}
 
 /// State Structs
 struct Initialized;
-struct Method;
+struct Method(MethodType);
 struct Resource;
 struct Id;
 struct Relation;
@@ -53,5 +53,26 @@ impl<S: RequestState> Request<S> {
             custody,
             state: next,
         }
+    }
+}
+
+/// The first state for the Request object, which includes the "new" creation function
+/// and the "method" function for transitioning into the next state.
+impl Request<Initialized> {
+    pub fn new() -> Request<Initialized> {
+        Request {
+            custody: vec![Rc::new(Initialized)],
+            state: Rc::new(Initialized),
+        }
+    }
+
+    /// The transition function for the Request<Initialized> state.
+    /// Requires the method to be set using the enum variants defined in the
+    /// MethodType enum.
+    ///
+    /// Consumes "self" (the Request object in the <Initialized> state)
+    /// and returns a new object of Request<Method>.
+    pub fn method(self, method: MethodType) -> Request<Method> {
+        self.transition(Method(method))
     }
 }
