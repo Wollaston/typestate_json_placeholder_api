@@ -57,12 +57,14 @@ impl fmt::Display for CollectionType {
 
 pub enum QueryType {
     PostId,
+    UserId,
 }
 
 impl fmt::Display for QueryType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             QueryType::PostId => write!(f, "postId"),
+            QueryType::UserId => write!(f, "userId"),
         }
     }
 }
