@@ -69,19 +69,21 @@ impl fmt::Display for QueryType {
     }
 }
 
-/// Generic trait for Request object typestate.
-pub trait RequestState {
-    fn get_param(&self) -> String;
-}
-
 /// Generic trait for Buildable typestate.
 pub trait BuildableState {}
+
+/// BuildableState typestate structs.
 
 pub struct Buildable;
 pub struct NotBuildable;
 
 impl BuildableState for Buildable {}
 impl BuildableState for NotBuildable {}
+
+/// Generic trait for Request object typestate.
+pub trait RequestState {
+    fn get_param(&self) -> String;
+}
 
 /// RequestState typestate structs.
 
@@ -138,7 +140,8 @@ impl RequestState for Build {
     }
 }
 
-/// Generic impl block, using "S" to represent the current RequestState.
+/// Generic impl block, using "S" to represent the current RequestState
+/// and "B" to represent the current BuildableState.
 impl<S: RequestState, B: BuildableState> Request<S, B> {
     fn transition<N: RequestState + 'static, NB: BuildableState>(
         self,
@@ -165,8 +168,12 @@ impl Default for Request<Initialized, NotBuildable> {
 }
 
 /// The first state for the Request object, which includes the "new" creation function
-/// and the "method" function for transitioning into the next state.
+/// and the "resource" function for transitioning into the next state.
 impl Request<Initialized, NotBuildable> {
+    /// Create a new Request object in the <Initialized, NotBuildable> state.
+    ///
+    /// The request HTTP method (using the MethodType enum) can be set. If
+    /// it is not set, it defaults to MethodType::GET.
     pub fn new(method: MethodType) -> Request<Initialized, NotBuildable> {
         Request {
             method,
@@ -176,13 +183,20 @@ impl Request<Initialized, NotBuildable> {
         }
     }
 
-    /// The transition function for the Request<Method> state.
+    /// The transition function for the Request<Initialized> state.
     ///
     /// Requires the resource to be set using the enum variants
     /// defined in the CollectionType enum.
     ///
-    /// Consumes "self" (the request object in the <Method> state)
+    /// Consumes "self" (the request object in the <Initialized> state)
     /// and returns a new object of Request<Resource>.
+    ///
+    /// This transition also sets the BuildableState to "Buildable" as the
+    /// mimimum parameters required for a request is that the resource is set.
+    ///
+    /// Accordingly, the returned object is Request<Resource, Buildable>.
+    ///
+    /// All subsequent Request objects will be of Buildable typestate.
     pub fn resource(self, resource: CollectionType) -> Request<Resource, Buildable> {
         self.transition(Resource(resource), Buildable)
     }
